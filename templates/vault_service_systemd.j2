@@ -14,7 +14,6 @@ Documentation=https://www.vaultproject.io/docs/
 Requires=network-online.target
 After=network-online.target
 ConditionFileNotEmpty={{ vault_main_config }}
-StartLimitInterval=60
 
 [Service]
 User={{ vault_user }}
@@ -30,14 +29,23 @@ AmbientCapabilities=CAP_SYSLOG CAP_IPC_LOCK
 {% endif %}
 CapabilityBoundingSet=CAP_SYSLOG CAP_IPC_LOCK
 NoNewPrivileges=yes
-ExecStart=/bin/sh -c '{{ vault_bin_path }}/vault server -config={{ vault_main_config }} -log-level={{ vault_log_level | lower }} {{ vault_exec_output }}'
+{% if vault_http_proxy -%}
+Environment=HTTP_PROXY={{ vault_http_proxy }}
+{% endif -%}
+{% if vault_https_proxy -%}
+Environment=HTTPS_PROXY={{ vault_https_proxy }}
+{% endif -%}
+{% if vault_no_proxy -%}
+Environment=NO_PROXY={{ vault_no_proxy }}
+{% endif -%}
+ExecStart=/bin/sh -c 'exec {{ vault_bin_path }}/vault server -config={{ vault_main_config }} -log-level={{ vault_log_level | lower }} {{ vault_exec_output }}'
 ExecReload=/bin/kill --signal HUP $MAINPID
 KillMode=process
 KillSignal=SIGINT
 Restart=on-failure
 RestartSec=5
 TimeoutStopSec=30
-StartLimitIntervalSec=60
+StartLimitInterval=60
 StartLimitBurst=3
 LimitNOFILE=524288
 LimitNPROC=524288
